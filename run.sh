@@ -11,8 +11,100 @@ dts=`date +%Y-%m-%d_%H:%M:%S`
 #####################################################
 source run.properties
 #####################################################
+#	 	MAIN CODE                                   #
+#####################################################
+main() {
+  # Using a function like this allows having other
+    # functions called before they are actually defined
+  print_line "#####################################################"
+  print_line "#	 	Vagrant Automaton 9000                    #"
+  print_line "#####################################################\n"
+
+  print_line "#####################################################"
+  print_line "#	 	Variables                                 #"
+  print_line "#####################################################"
+  print_variables
+  print_done
+
+  print_line "#####################################################"
+  print_line "#	 	Script                                    #"
+  print_line "#####################################################"
+  script_update
+  print_done
+
+  print_line "#####################################################"
+  print_line "#	 	Vagrant                                   #"
+  print_line "#####################################################"
+  vagrant_install
+  vagrant_get_plugins
+  # Handled by Vagrantfile
+  # vagrant_download_boxes
+  print_done
+
+  print_line "#####################################################"
+  print_line "#	 	Ansible                                   #"
+  print_line "#####################################################"
+  ansible_install
+  ansible_config
+  ansible_playbook_repo_clone
+  ansible_plugins
+  ansible_prompt_vault_password
+  # Handled by Vagrantfile
+  # ansible_get_requirements
+  print_done
+
+  print_line "#####################################################"
+  print_line "#	 	Boxes                                     #"
+  print_line "#####################################################"
+  print_line "Boxes: Box(es) is/are: $boxes"
+  for box in $boxes
+  do
+    if !(vm_check_status $box); then
+      vm_destroy $box
+    fi
+
+    if (vm_start $box); then
+      print_line "Boxes: Box Started Successfully: '$box'"
+    else
+      print_line "Boxes: !!! ERROR !!!"
+      print_line "Boxes: !!! ERROR !!!   Unable to bring up box: '$box'"
+      print_line "Boxes: !!! ERROR !!!"
+    fi
+
+    if $vagrant_force_provisioning; then
+      vagrant provision $box
+    fi
+
+    if $vagrant_force_reload; then
+      vagrant reload $box
+    fi
+  done
+  print_line "#####################################################"
+  end=`date +%s`
+  print_line "Total execution time: $((end-start)) seconds"
+  print_line "#####################################################"
+  print_line "#	 	Vagrant Automaton 9000                    #"
+  print_line "#####################################################"
+}
+#####################################################
 #              FUNCTIONS CODE BLOCK                 #
 #####################################################
+print_line() {
+  echo -e "$print_prefix $@"
+}
+
+print_done() {
+  print_line "#####################################################\n"
+}
+
+in_list() {
+	[[ $1 =~ $2 ]] && return 0 || return 1	
+}
+
+sed_replace() {
+	sed -i "s|.*$2.*|$3|" $1
+}
+
 script_update() {
   if [ "$script_check_updates" ]; then
     if script_version_check ; then
@@ -28,17 +120,17 @@ script_update() {
   fi #script_check_updates
 }
 
+## each separate version number must be less than 3 digit wide !
+function version_check {
+  echo "$@" | gawk -F. '{ printf("%03d%03d%03d\n", $1,$2,$3); }';
+}
+
 script_version_check() {
   print_line "Script: Checking for updates..."
   script_ver_current=$(grep 'script_version' run.properties | awk -F= '{print $2}')
   script_ver_target=$(curl -s ${script_src_repo}/run.properties | grep script_version | awk -F= '{print $2}')
   print_line "Script: Comparing current version ($script_ver_current) to repo version ($script_ver_target)"
   [[ "$(version_check $script_ver_current)" -lt "$(version_check $script_ver_target)" ]] && return 0 || return 1
-}
-
-## each separate version number must be less than 3 digit wide !
-function version_check {
-  echo "$@" | gawk -F. '{ printf("%03d%03d%03d\n", $1,$2,$3); }';
 }
 
 script_download_updates() {
@@ -79,23 +171,16 @@ EOF
 
 script_do_update() {
   exec /bin/bash "run.updateScript.sh" "$@"
-  exit 1
+  exit 0
 }
 
-print_line() {
-  echo -e "$print_prefix $@"
-}
-
-print_done() {
-  print_line "#####################################################\n"
-}
-
-in_list() {
-	[[ $1 =~ $2 ]] && return 0 || return 1	
-}
-
-sed_replace() {
-	sed -i "s|.*$2.*|$3|" $1
+print_variables() {
+  while read -r line; do
+    if [[ ! -z "${line// }" && "${line:0:1}" != '#' && "${line:0:1}" != ' ' ]]; then
+      line=$(echo "$line" | cut -d'=' -f 1)
+      printf "%-65s %-40s\n" "$print_prefix $line" ${!line}
+    fi
+  done < run.properties
 }
 
 vagrant_install() {
@@ -260,87 +345,9 @@ vm_start() {
   [[ $? == 0 ]] && return 0 || return 1
 }
 #####################################################
-#	 	MAIN CODE                                   #
+#	 	MAIN CODE CALL                                  #
 #####################################################
-print_line "#####################################################"
-print_line "#	 	Vagrant Automaton 9000                    #"
-print_line "#####################################################\n"
-
-print_line "#####################################################"
-print_line "#	 	Variables                                 #"
-print_line "#####################################################"
-# for var in start dts boxes box_provider vagrant_plugins_install vagrant_plugins vagrant_force_provisioning vagrant_force_reload ansible_ask_vault_password ansible_replace_config ansible_use_log_plugin ansible_playbook_repo; do
-#     printf "%-60s %-40s\n" "$print_prefix $var" ${!var}
-# done
-while read -r name value; do
-  if [[ ! -z "${name// }" && ! "${name:0:1}" == '#' ]]; then
-    printf "%-65s %-40s\n" "$print_prefix $name" ${!name}
-  fi
-done < run.properties
-
-print_done
-
-print_line "#####################################################"
-print_line "#	 	Script                                    #"
-print_line "#####################################################"
-script_update
-print_done
-
-exit 0
-
-print_line "#####################################################"
-print_line "#	 	Vagrant                                   #"
-print_line "#####################################################"
-vagrant_install
-vagrant_get_plugins
-# Handled by Vagrantfile
-# vagrant_download_boxes
-print_done
-
-print_line "#####################################################"
-print_line "#	 	Ansible                                   #"
-print_line "#####################################################"
-ansible_install
-ansible_config
-ansible_playbook_repo_clone
-ansible_plugins
-ansible_prompt_vault_password
-# Handled by Vagrantfile
-# ansible_get_requirements
-print_done
-
-print_line "#####################################################"
-print_line "#	 	Boxes                                     #"
-print_line "#####################################################"
-print_line "Boxes: Box(es) is/are: $boxes"
-for box in $boxes
-do
-	if !(vm_check_status $box); then
-    vm_destroy $box
-  fi
-
-  if (vm_start $box); then
-    print_line "Boxes: Box Started Successfully: '$box'"
-  else
-    print_line "Boxes: !!! ERROR !!!"
-    print_line "Boxes: !!! ERROR !!!   Unable to bring up box: '$box'"
-    print_line "Boxes: !!! ERROR !!!"
-  fi
-
-  if $vagrant_force_provisioning; then
-    vagrant provision $box
-  fi
-
-  if $vagrant_force_reload; then
-    vagrant reload $box
-  fi
-done
-print_line "#####################################################"
-end=`date +%s`
-print_line "Total execution time: $((end-start)) seconds"
-print_line "#####################################################"
-print_line "#	 	Vagrant Automaton 9000                    #"
-print_line "#####################################################"
+main
 exit 0
 #####################################################
 #	 	TODOs                                       #

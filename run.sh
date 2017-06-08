@@ -56,7 +56,7 @@ main() {
   print_line "#####################################################"
   print_line "#	 	Boxes                                     #"
   print_line "#####################################################"
-  print_line "Boxes: Box(es) is/are: $boxes"
+  print_line "Boxes: Box(es) is/are: $vagrant_boxes"
   for box in $vagrant_boxes
   do
     if !(vm_check_status $box); then
@@ -71,11 +71,11 @@ main() {
       print_line "Boxes: !!! ERROR !!!"
     fi
 
-    if $vagrant_force_provisioning; then
+    if [[ "$vagrant_force_provisioning" == "true" ]]; then
       vagrant provision $box
     fi
 
-    if $vagrant_force_reload; then
+    if [[ "$vagrant_force_reload" == "true" ]]; then
       vagrant reload $box
     fi
   done
@@ -123,7 +123,7 @@ vm_destroy() {
 }
 
 vm_start() {
-  if $(in_list $1); then
+  if $(in_list $1 $vagrant_boxes); then
     print_line "Boxes: Starting Box: '$1'"
     vagrant up --provider $vagrant_box_provider $1
   fi
@@ -133,9 +133,12 @@ vm_start() {
 #              FUNCTIONS: UPDATES                   #
 #####################################################
 script_update() {
-  if [ "$script_check_updates" ]; then
+  if [[ "$script_check_updates" != 'true' ]]; then
+    print_line "Update: Update checking disabled by run.properties variable 'script_check_udpates'"
+  else    
     if script_version_check ; then
       print_line "Update: Update available!"
+    
       if script_download_updates ; then
         script_prep_update && script_do_update
       else 
@@ -143,6 +146,8 @@ script_update() {
       fi # Script_download_updates
       
       print_line "Update: Version: $script_ver_current is latest"
+    else
+      print_line "Update: Update not needed"
     fi #script_version_check
   fi #script_check_updates
 }
@@ -224,7 +229,7 @@ vagrant_install() {
 }
 
 vagrant_get_plugins() {
-  if $vagrant_plugins_install; then
+  if [[ "$vagrant_plugins_install" == "true" ]]; then
     for plugin in $vagrant_plugins; do
       print_line "Plugins: Checking for: $plugin"
       if ! vagrant plugin list | grep -q -i $plugin ; then
@@ -267,7 +272,7 @@ ansible_install() {
 }
 
 ansible_config() {
-  if $ansible_replace_config; then
+  if [[ "$ansible_replace_config" == "true" ]]; then
     print_line "Config: Removing current ansible.cfg"
     rm -f ansible.cfg  
   fi
@@ -280,7 +285,7 @@ ansible_config() {
   print_line "Config: Setting 'roles_path' to: 'ansible/roles'"
   sed_replace 'ansible.cfg' '#roles_path' 'roles_path = ansible/roles'
 
-  if [[ $ansible_use_log_plugin == true ]]; then
+  if [[ "$ansible_use_log_plugin" == "true" ]]; then
     print_line "Config: Setting 'callback_plugins' to: 'ansible/plugins'"
     sed_replace 'ansible.cfg' '#callback_plugins' 'callback_plugins = ansible/plugins'
   fi
@@ -312,7 +317,7 @@ ansible_playbook_repo_clone() {
 }
 
 ansible_plugins() {
-  if $ansible_replace_config && $ansible_use_log_plugin; then
+  if [[ "$ansible_replace_config" == "true" && "$ansible_use_log_plugin" == "true" ]]; then
     if [ ! -e ansible/plugins/human_log.py ]; then
     print_line "Plugins: Downloading 'Human' Readable Ouptut"
     mkdir -p ansible/plugins
@@ -326,7 +331,7 @@ ansible_plugins() {
 }
 
 ansible_prompt_vault_password() {
-  if $ansible_ask_for_vault_password; then
+  if [[ "$ansible_ask_for_vault_password" == "true" ]]; then
 
     # Check if file already exists
     if [ -f ./ansible/vault-password.txt ]; then

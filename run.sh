@@ -17,23 +17,26 @@ source run.properties
 #              FUNCTIONS CODE BLOCK                 #
 #####################################################
 script_update() {
-  if [ $script_check_updates && script_version_check() ]; then
-    if [ script_download_updates() ]; then
-      script_prep_update() && script_do_update()
-    else 
-      print_line "Script: Download Failed. Skipping update..."
-    fi # Script_download_updates()
-    
-    print_line "Script: Version: $script_ver_current is latest"
-  fi #script_check_updates && script_version_check()
+  if [ "$script_check_updates" ]; then
+    if script_version_check ; then
+      print_line "Script: Update available!"
+      if script_download_updates ; then
+        script_prep_update && script_do_update
+      else 
+        print_line "Script: Download Failed. Skipping update..."
+      fi # Script_download_updates
+      
+      print_line "Script: Version: $script_ver_current is latest"
+    fi #script_version_check
+  fi #script_check_updates
 }
 
 script_version_check() {
   print_line "Script: Checking for updates..."
   script_ver_current=$(grep 'script_version' run.properties | awk -F= '{print $2}')
   script_ver_target=$(curl -s ${script_src_repo}/run.properties | grep script_version | awk -F= '{print $2}')
-  # [ "$script_ver_target" -gt "$script_ver_current" ] && return 0 || return 1
-  [ "$(version_check $script_ver_current)" -lt "$(version_check $script_ver_target)" ] && return 0 || return 1
+  print_line "Script: Comparing current version ($script_ver_current) to repo version ($script_ver_target)"
+  [[ "$(version_check $script_ver_current)" -lt "$(version_check $script_ver_target)" ]] && return 0 || return 1
 }
 
 ## each separate version number must be less than 3 digit wide !
@@ -42,31 +45,36 @@ function version_check {
 }
 
 script_download_updates() {
-  download_failed=false
+  download_success=true
   print_line "Script: Downloading updates..."
-  if ! curl -s ${script_src_repo}/run.properties -O run.properties.tmp ; then
-    download_failed=true
-  if ! curl -s ${script_src_repo}/run.sh -O run.sh.tmp ; then
-    download_failed=true
-  [ $download_failed ] && return 1 || return 0
+  if ! curl -s "${script_src_repo}/run.properties" -o run.properties.tmp ; then
+    download_success=false
+  fi
+  
+  if ! curl -s "${script_src_repo}/run.sh" -o run.sh.tmp ; then
+    download_success=false
+  fi
+
+  [[ "$download_success" ]] && return 0 || return 1
 }
 
 script_prep_update() {
   # Set File Properties
-  OCTAL_MODE=$(stat -c '%a' $SELF)
-  if [ ! chmod $OCTAL_MODE "$0.tmp" ]; then
+  OCTAL_MODE=$(stat -c '%a' $(basename $0))
+  if ! $(chmod $OCTAL_MODE "$0.tmp") ; then
     print_line "Script: Failed: Error while trying to set mode on $0.tmp."
   fi
   # Create actual update script
   cat > run.updateScript.sh << EOF
 #!/bin/bash
-date=`date +%Y-%m-%d_%H-%M-%S`
+d=`date +%Y-%m-%d_%H-%M-%S`
 # Backup current script
-if [ mv run.sh "run.sh.${date} && mv "run.sh.tmp" "run.sh" ] ; then
+if mv run.sh "run.sh.${d}" && mv "run.sh.tmp" "run.sh" && mv run.properties "run.properties.${d}" && mv run.properties.tmp run.properties ; then
   echo "Script: Update complete! Relaunching..."
   exec /bin/bash "run.sh" "$@" && rm -f run.updateScript.sh
 else
   echo "Script: Failed to move script files!"
+  exit 1
 fi
 EOF
 }
@@ -267,9 +275,17 @@ print_line "#####################################################"
 #     printf "%-60s %-40s\n" "$print_prefix $var" ${!var}
 # done
 while read -r name value; do
-  printf "%-65s %-40s\n" "$print_prefix $name" ${!name}
+  if [[ ! -z "${name// }" && ! "${name:0:1}" == '#' ]]; then
+    printf "%-65s %-40s\n" "$print_prefix $name" ${!name}
+  fi
 done < run.properties
 
+print_done
+
+print_line "#####################################################"
+print_line "#	 	Script                                    #"
+print_line "#####################################################"
+script_update
 print_done
 
 exit 0

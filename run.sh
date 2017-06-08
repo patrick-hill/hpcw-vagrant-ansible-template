@@ -45,8 +45,8 @@ main() {
   print_line "#	 	Ansible                                   #"
   print_line "#####################################################"
   ansible_install
-  ansible_config
   ansible_playbook_repo_clone
+  ansible_config
   ansible_plugins
   ansible_prompt_vault_password
   # Handled by Vagrantfile
@@ -300,8 +300,9 @@ ansible_config() {
 ansible_playbook_repo_clone() {
   ret=0
   if [ ! -z "$ansible_playbook_repo" ]; then
+    print_line "Repo: Checking playbook repo..."
     # Check if dir exists already
-    if [ -d ./ansible ]; then
+    if [[ -d ./ansible ]]; then
       print_line "Repo: Already cloned, pulling latest changes"
       cd $ansible_playbook_repo
       git pull

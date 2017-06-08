@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 clear
-
-## Testing line for self updating ;)
-
 #####################################################
 #              VARIABLES							#
 #####################################################
@@ -69,7 +66,8 @@ script_prep_update() {
 #!/bin/bash
 d=`date +%Y-%m-%d_%H-%M-%S`
 # Backup current script
-if mv run.sh "run.sh.${d}" && mv "run.sh.tmp" "run.sh" && mv run.properties "run.properties.${d}" && mv run.properties.tmp run.properties ; then
+if mv run.sh "run.sh.${d}" && mv "run.sh.tmp" "run.sh" ; then
+  # mv run.properties "run.properties.${d}" && mv run.properties.tmp run.properties 
   echo "Script: Update complete! Relaunching..."
   exec /bin/bash "run.sh" "$@" && rm -f run.updateScript.sh
 else
@@ -350,4 +348,4 @@ exit 0
 # - Install Vagrant if not found
 # - Install Ansible if not found
 # - Install VirtualBox if not found
-# - Check exit codes and stop script on error
+# - Check exit codes and stop script on errors

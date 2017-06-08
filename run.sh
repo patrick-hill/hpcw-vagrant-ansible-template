@@ -332,7 +332,6 @@ ansible_plugins() {
 
 ansible_prompt_vault_password() {
   if [[ "$ansible_ask_for_vault_password" == "true" ]]; then
-
     # Check if file already exists
     if [ -f ./ansible/vault-password.txt ]; then
       print_line "Vault Password: File already exists, skipping..."

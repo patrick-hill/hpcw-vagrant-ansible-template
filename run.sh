@@ -87,7 +87,7 @@ main() {
   print_line "#####################################################"
 }
 #####################################################
-#              FUNCTIONS CODE BLOCK                 #
+#              FUNCTIONS: HELPERS                   #
 #####################################################
 print_line() {
   echo -e "$print_prefix $@"
@@ -105,17 +105,44 @@ sed_replace() {
 	sed -i "s|.*$2.*|$3|" $1
 }
 
+vm_check_status() {
+  print_line "Boxes: Checking box: $1"
+  is_running=$(vagrant status $1 --machine-readable | grep -m 1 'state' | awk -F',' '{print $4}')
+  if [[ "$is_running" == 'running' ]]; then
+    print_line "Boxes: Box is currently running: '$1'"
+  else
+    print_line "Boxes: Box is NOT running: '$1'"
+  fi
+  [[ "$is_running" == 'running' ]] && return 1 || return 0
+}
+
+vm_destroy() {
+  print_line "Boxes: Destroying box: '$1'"
+  vagrant destroy -f $1
+  return $?
+}
+
+vm_start() {
+  if $(in_list $1); then
+    print_line "Boxes: Starting Box: '$1'"
+    vagrant up --provider $vagrant_box_provider $1
+  fi
+  [[ $? == 0 ]] && return 0 || return 1
+}
+#####################################################
+#              FUNCTIONS: UPDATES                   #
+#####################################################
 script_update() {
   if [ "$script_check_updates" ]; then
     if script_version_check ; then
-      print_line "Script: Update available!"
+      print_line "Update: Update available!"
       if script_download_updates ; then
         script_prep_update && script_do_update
       else 
-        print_line "Script: Download Failed. Skipping update..."
+        print_line "Update: Download Failed. Skipping update..."
       fi # Script_download_updates
       
-      print_line "Script: Version: $script_ver_current is latest"
+      print_line "Update: Version: $script_ver_current is latest"
     fi #script_version_check
   fi #script_check_updates
 }
@@ -126,16 +153,16 @@ function version_check {
 }
 
 script_version_check() {
-  print_line "Script: Checking for updates..."
+  print_line "Update: Checking for updates..."
   script_ver_current=$(grep 'script_version' run.properties | awk -F= '{print $2}')
   script_ver_target=$(curl -s ${script_src_repo}/run.properties | grep script_version | awk -F= '{print $2}')
-  print_line "Script: Comparing current version ($script_ver_current) to repo version ($script_ver_target)"
+  print_line "Update: Comparing current version ($script_ver_current) to repo version ($script_ver_target)"
   [[ "$(version_check $script_ver_current)" -lt "$(version_check $script_ver_target)" ]] && return 0 || return 1
 }
 
 script_download_updates() {
   download_success=true
-  print_line "Script: Downloading updates..."
+  print_line "Update: Downloading updates..."
   if ! curl -s "${script_src_repo}/run.properties" -o run.properties.tmp ; then
     download_success=false
   fi
@@ -151,7 +178,7 @@ script_prep_update() {
   # Set File Properties
   OCTAL_MODE=$(stat -c '%a' $(basename $0))
   if ! $(chmod $OCTAL_MODE "$0.tmp") ; then
-    print_line "Script: Failed: Error while trying to set mode on $0.tmp."
+    print_line "Update: Failed: Error while trying to set mode on $0.tmp."
   fi
   # Create actual update script
   cat > run.updateScript.sh << EOF
@@ -160,10 +187,10 @@ d=`date +%Y-%m-%d_%H-%M-%S`
 # Backup current script
 if mv run.sh "run.sh.${d}" && mv "run.sh.tmp" "run.sh" ; then
   # mv run.properties "run.properties.${d}" && mv run.properties.tmp run.properties 
-  echo "Script: Update complete! Relaunching..."
+  echo "Update: Update complete! Relaunching..."
   exec /bin/bash "run.sh" "$@" && rm -f run.updateScript.sh
 else
-  echo "Script: Failed to move script files!"
+  echo "Update: Failed to move script files!"
   exit 1
 fi
 EOF
@@ -182,7 +209,9 @@ print_variables() {
     fi
   done < run.properties
 }
-
+#####################################################
+#              FUNCTIONS: VAGRANT                   #
+#####################################################
 vagrant_install() {
   installed=$(which vagrant && echo $?)
   if [ "$installed" == '1' ]; then
@@ -210,7 +239,7 @@ vagrant_get_plugins() {
 
 vagrant_download_boxes() {
   if [ ! -z $vagrant_boxstore_url ]; then
-  for box in $boxes; do
+  for box in $vagrant_boxes; do
     if [[ "$box" -ne 'default' ]]; then
     print_line "Boxes: Download box: '$box'"
     vagrant box add "${vagrant_boxstore_url}/${box}.box"
@@ -220,10 +249,12 @@ vagrant_download_boxes() {
 }
 
 vagrant_get_box_names() {
-  boxes=$(vagrant status --machine-readable | grep metadata | awk -F',' '{print $2}' | awk '{printf("%s,",$0)}' | sed 's/,\s*$//')
+  vagrant_boxes=$(vagrant status --machine-readable | grep metadata | awk -F',' '{print $2}' | awk '{printf("%s,",$0)}' | sed 's/,\s*$//')
   return $?
 }
-
+#####################################################
+#              FUNCTIONS: ANSIBLE                   #
+#####################################################
 ansible_install() {
   installed=$(which ansible && echo $?)
   if [ "$installed" == '1' ]; then
@@ -318,31 +349,6 @@ ansible_get_requirements() {
     fi
   ansible-galaxy install -p ./ansible/roles/ -r ./ansible/requirements.yml
   fi
-}
-
-vm_check_status() {
-  print_line "Boxes: Checking box: $1"
-  is_running=$(vagrant status $1 --machine-readable | grep -m 1 'state' | awk -F',' '{print $4}')
-  if [[ "$is_running" == 'running' ]]; then
-    print_line "Boxes: Box is currently running: '$1'"
-  else
-    print_line "Boxes: Box is NOT running: '$1'"
-  fi
-  [[ "$is_running" == 'running' ]] && return 1 || return 0
-}
-
-vm_destroy() {
-  print_line "Boxes: Destroying box: '$1'"
-  vagrant destroy -f $1
-  return $?
-}
-
-vm_start() {
-  if $(in_list $1); then
-    print_line "Boxes: Starting Box: '$1'"
-    vagrant up --provider=$box_provider $1
-  fi
-  [[ $? == 0 ]] && return 0 || return 1
 }
 #####################################################
 #	 	MAIN CODE CALL                                  #

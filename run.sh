@@ -57,7 +57,7 @@ main() {
   print_line "#	 	Boxes                                     #"
   print_line "#####################################################"
   print_line "Boxes: Box(es) is/are: $boxes"
-  for box in $boxes
+  for box in $vagrant_boxes
   do
     if !(vm_check_status $box); then
       vm_destroy $box

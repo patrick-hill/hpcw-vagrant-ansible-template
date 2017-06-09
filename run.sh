@@ -16,6 +16,33 @@ dts=`date +%Y-%m-%d_%H:%M:%S`
 #####################################################
 source run.properties
 #####################################################
+#	 	ARGUMENTS                                       #
+#####################################################
+while [[ $# -gt 0 ]]; do
+  args="$1"
+  case $args in
+    -b|--boxes)
+    vagrant_boxes="$2"
+    shift # past argument
+    ;;
+    -u|--update)
+    script_force_update=true
+    shift # past argument
+    ;;
+    -h|--help)
+    show_help=true
+    shift # past argument
+    ;;
+    *)
+    # unknown option
+    print_line "Unknown argument: $1"
+    print_line "Use -h or --help for more information."
+    exit 1
+    ;;
+  esac
+  shift # past argument or value
+done
+#####################################################
 #	 	MAIN CODE                                       #
 #####################################################
 main() {
@@ -24,6 +51,12 @@ main() {
   print_line "#####################################################"
   print_line "#	 	Vagrant Automaton 9000                    #"
   print_line "#####################################################\n"
+
+  print_line "#####################################################"
+  print_line "#	 	Arguments                                 #"
+  print_line "#####################################################"
+  process_args
+  print_done
 
   print_line "#####################################################"
   print_line "#	 	Variables                                 #"
@@ -133,6 +166,29 @@ vm_start() {
   [[ $? == 0 ]] && return 0 || return 1
 }
 #####################################################
+#              FUNCTIONS: ARGUMENTS                 #
+#####################################################
+process_args() {
+  if [[ "$script_force_update" == "true" ]]; then
+    script_check_updates=true
+    script_update
+  fi
+  
+  print_help
+}
+
+print_help() {
+  if [ "$show_help" == "true" ]; then
+    print_line 
+    print_line "run.sh Version: $(script_get_current_version)"
+    print_line 
+    printf "%-20s %-40s\n" "  -b|--boxes"   "Specifies which boxes to target for this run"
+    printf "%-20s %-40s\n" "  -u|--update"  "Forces the script to update regardless of properties"
+    printf "%-20s %-40s\n" "  -h|--help"    "Shows the help information"
+    exit 0
+  fi
+}
+#####################################################
 #              FUNCTIONS: UPDATES                   #
 #####################################################
 script_update() {
@@ -162,10 +218,14 @@ function version_check {
 
 script_version_check() {
   print_line "Update: Checking for updates..."
-  script_ver_current=$(grep '###script_version' run.sh | head -1 | awk -F= '{print $2}')
+  script_get_current_version
   script_ver_target=$(curl -s ${script_src_repo}/run.sh | grep '###script_version' | head -1 | awk -F= '{print $2}')
   print_line "Update: Comparing current version ($script_ver_current) to repo version ($script_ver_target)"
   [[ "$(version_check $script_ver_current)" -lt "$(version_check $script_ver_target)" ]] && return 0 || return 1
+}
+
+script_get_current_version() {
+  script_ver_current=$(grep '###script_version' run.sh | head -1 | awk -F= '{print $2}')
 }
 
 script_download_updates() {

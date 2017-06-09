@@ -1,17 +1,22 @@
 #!/usr/bin/env bash
 clear
 #####################################################
-#              VARIABLES							#
+#              SCRIPT							                  #
+#####################################################
+# ###script_version=0.0.2
+# DO NOT CHANGE THE ABOVE LINE!!!!
+#####################################################
+#              VARIABLES							              #
 #####################################################
 start=`date +%s`
 print_prefix="* * Automaton 9k - run.sh ==>"
 dts=`date +%Y-%m-%d_%H:%M:%S`
 #####################################################
-#              USER CONFIG VARIABLES				#
+#              USER CONFIG VARIABLES				        #
 #####################################################
 source run.properties
 #####################################################
-#	 	MAIN CODE                                   #
+#	 	MAIN CODE                                       #
 #####################################################
 main() {
   # Using a function like this allows having other
@@ -123,10 +128,8 @@ vm_destroy() {
 }
 
 vm_start() {
-  if $(in_list $1 $vagrant_boxes); then
-    print_line "Boxes: Starting Box: '$1'"
-    vagrant up --provider $vagrant_box_provider $1
-  fi
+  print_line "Boxes: Starting Box: '$1'"
+  vagrant up --provider $vagrant_box_provider $1
   [[ $? == 0 ]] && return 0 || return 1
 }
 #####################################################
@@ -159,8 +162,8 @@ function version_check {
 
 script_version_check() {
   print_line "Update: Checking for updates..."
-  script_ver_current=$(grep 'script_version' run.properties | awk -F= '{print $2}')
-  script_ver_target=$(curl -s ${script_src_repo}/run.properties | grep script_version | awk -F= '{print $2}')
+  script_ver_current=$(grep '###script_version' run.sh | awk -F= '{print $2}')
+  script_ver_target=$(curl -s ${script_src_repo}/run.sh | grep '###script_version' | awk -F= '{print $2}')
   print_line "Update: Comparing current version ($script_ver_current) to repo version ($script_ver_target)"
   [[ "$(version_check $script_ver_current)" -lt "$(version_check $script_ver_target)" ]] && return 0 || return 1
 }
@@ -302,12 +305,9 @@ ansible_playbook_repo_clone() {
   if [ ! -z "$ansible_playbook_repo" ]; then
     print_line "Repo: Checking playbook repo..."
     # Check if dir exists already
-    if [[ -d ./ansible ]]; then
+    if [[ -d ansible ]]; then
       print_line "Repo: Already cloned, pulling latest changes"
-      cd $ansible_playbook_repo
-      git pull
-      ret=$?
-      cd ..
+      git -C $ansible_playbook_repo pull || true
     else
       print_line "Repo: Cloning repo to ./ansible"
       git clone $ansible_playbook_repo ./ansible
@@ -361,7 +361,7 @@ ansible_get_requirements() {
 main
 exit 0
 #####################################################
-#	 	TODOs                                       #
+#	 	TODOs                                           #
 #####################################################
 # - Install Vagrant if not found
 # - Install Ansible if not found

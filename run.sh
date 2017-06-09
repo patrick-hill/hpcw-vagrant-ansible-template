@@ -162,8 +162,8 @@ function version_check {
 
 script_version_check() {
   print_line "Update: Checking for updates..."
-  script_ver_current=$(grep '###script_version' run.sh | awk -F= '{print $2}')
-  script_ver_target=$(curl -s ${script_src_repo}/run.sh | grep '###script_version' | awk -F= '{print $2}')
+  script_ver_current=$(grep '###script_version' run.sh | head -1 | awk -F= '{print $2}')
+  script_ver_target=$(curl -s ${script_src_repo}/run.sh | grep '###script_version' | head -1 | awk -F= '{print $2}')
   print_line "Update: Comparing current version ($script_ver_current) to repo version ($script_ver_target)"
   [[ "$(version_check $script_ver_current)" -lt "$(version_check $script_ver_target)" ]] && return 0 || return 1
 }

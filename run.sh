@@ -16,7 +16,7 @@ dts=`date +%Y-%m-%d_%H:%M:%S`
 #####################################################
 source run.properties
 #####################################################
-#	 	ARGUMENTS                                       #
+#              ARGUMENTS                            #
 #####################################################
 while [[ $# -gt 0 ]]; do
   args="$1"
@@ -43,7 +43,7 @@ while [[ $# -gt 0 ]]; do
   shift # past argument or value
 done
 #####################################################
-#	 	MAIN CODE                                       #
+#              MAIN CODE                            #
 #####################################################
 main() {
   # Using a function like this allows having other
@@ -416,12 +416,12 @@ ansible_get_requirements() {
   fi
 }
 #####################################################
-#	 	MAIN CODE CALL                                  #
+#              MAIN CODE CALL                       #
 #####################################################
 main
 exit 0
 #####################################################
-#	 	TODOs                                           #
+#              TODOs                                #
 #####################################################
 # - Install Vagrant if not found
 # - Install Ansible if not found

@@ -3,7 +3,7 @@ clear
 #####################################################
 #              SCRIPT							                  #
 #####################################################
-# ###script_version=0.0.3
+# ###script_version=0.0.4
 # DO NOT CHANGE THE ABOVE LINE!!!!
 #####################################################
 #              VARIABLES							              #
@@ -367,7 +367,7 @@ ansible_playbook_repo_clone() {
     # Check if dir exists already
     if [[ -d ansible ]]; then
       print_line "Repo: Already cloned, pulling latest changes"
-      git -C $ansible_playbook_repo pull || true
+      git -C ./ansible pull || true
     else
       print_line "Repo: Cloning repo to ./ansible"
       git clone $ansible_playbook_repo ./ansible

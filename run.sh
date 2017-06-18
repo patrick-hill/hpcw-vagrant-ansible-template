@@ -3,7 +3,7 @@ clear
 #####################################################
 #              SCRIPT							                  #
 #####################################################
-# ###script_version=0.0.4
+# ###script_version=0.0.5
 # DO NOT CHANGE THE ABOVE LINE!!!!
 #####################################################
 #              VARIABLES							              #
@@ -94,6 +94,10 @@ main() {
   print_line "#####################################################"
   print_line "#	 	Boxes                                     #"
   print_line "#####################################################"
+  if [[ -z "$vagrant_boxes" ]]; then
+    vagrant_get_box_names
+  fi
+
   print_line "Boxes: Box(es) is/are: $vagrant_boxes"
   for box in $vagrant_boxes
   do

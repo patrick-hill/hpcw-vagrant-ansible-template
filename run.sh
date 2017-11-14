@@ -3,7 +3,7 @@ clear
 #####################################################
 #              SCRIPT							                  #
 #####################################################
-# ###script_version=0.0.5
+# ###script_version=0.0.6
 # DO NOT CHANGE THE ABOVE LINE!!!!
 #####################################################
 #              VARIABLES							              #
@@ -346,7 +346,7 @@ ansible_config() {
   
   if [ ! -e ansible.cfg ]; then
     print_line "Config: Downloading 'clean' ansible.cfg"
-    curl -s https://raw.githubusercontent.com/ansible/ansible/devel/examples/ansible.cfg -o ansible.cfg
+    curl -s -k https://raw.githubusercontent.com/ansible/ansible/devel/examples/ansible.cfg -o ansible.cfg
   fi
 
   print_line "Config: Setting 'roles_path' to: 'ansible/roles'"
